@@ -1,0 +1,56 @@
+﻿@model Lesson25.ViewModels.LoginVm
+
+@{
+    ViewBag.Title = "SignIn";
+}
+
+<h2>@ViewBag.Title</h2>
+
+<script src="/Scripts/jquery-3.3.1.min.js"></script>
+<script>
+    //закрашиваем инпут логина зеленым при совпадении логина
+    $(document).ready(function () {
+        var loginInput = $('#Login');
+        var color = loginInput.css("background-color");
+        loginInput.keyup(function (e) {
+            $.ajax({
+                url: "@Url.Action("IsAccountExists", "Login")",
+                type: "GET",
+                data: { login: loginInput.val()},
+                success: function (result) {
+                    if (result === true) {
+                        loginInput.css("background-color", "green")
+                    }
+                    else {
+                        loginInput.css("background-color", color)
+                    }
+                },
+                statusCode: {
+                    406: function () {
+                        loginInput.css("background-color", "yellow");
+                    }
+                }
+            });
+        });
+    });
+</script>
+
+@using (Html.BeginForm())
+{
+    @Html.HiddenFor(s => s.ReturnUrl)
+    <h1>Login to site</h1>
+    <div>
+        <p>
+            @Html.TextBoxFor(s => s.Login)
+            @Html.ValidationMessageFor(s => s.Login)
+        </p>
+        <p>
+            @Html.PasswordFor(s => s.Password)
+            @Html.ValidationMessageFor(s => s.Password)
+        </p>
+
+        <p>@Html.ValidationMessage("SigninError")</p>
+        <button type="submit">Login</button>
+    </div>
+}
+
