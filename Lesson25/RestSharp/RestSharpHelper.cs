@@ -2,6 +2,7 @@
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Web;
@@ -10,10 +11,10 @@ namespace Lesson25.RestSharp
 {
     public class RestSharpHelper
     {
-        private string WebApiUrl = "http://localhost:8018/";
+        private string WebApiUrl = ConfigurationManager.AppSettings[RestServiceNames.WebApiUrl.ToString()];
 
         public IRestResponse Execute(
-            string methodName,
+            RestServiceNames methodName,
             Method method,
             Dictionary<string, object> parameters = null,
             bool isAuthorized = false,
@@ -26,12 +27,12 @@ namespace Lesson25.RestSharp
         }
 
         public IRestResponse<TResult> Execute<TResult>(
-            string methodName,
+            RestServiceNames methodName,
             Method method,
             Dictionary<string, object> parameters = null,
             bool isAuthorized = false,
             DataFormat dataFormat = DataFormat.Json
-            ) where TResult: new()
+            ) where TResult: class, new()
         {
             return !isAuthorized 
                 ? ExecuteImpl<TResult>(methodName, method, parameters, null, dataFormat)
@@ -39,7 +40,7 @@ namespace Lesson25.RestSharp
         }
 
         private IRestResponse ExecuteImpl(
-            string methodName,
+            RestServiceNames methodName,
             Method method,
             Dictionary<string, object> parameters,
             string authorizedToken,
@@ -53,12 +54,12 @@ namespace Lesson25.RestSharp
         }
 
         private IRestResponse<TResult> ExecuteImpl<TResult>(
-            string methodName,
+            RestServiceNames methodName,
             Method method,
             Dictionary<string, object> parameters,
             string authorizedToken,
             DataFormat dataFormat = DataFormat.Json
-            ) where TResult : new()
+            ) where TResult : class, new()
         {
             RestClient client = new RestClient(WebApiUrl);
             RestRequest request = CreateRequest(methodName, method, parameters, authorizedToken, dataFormat);
@@ -67,13 +68,14 @@ namespace Lesson25.RestSharp
         }
 
         private RestRequest CreateRequest(
-            string methodName,
+            RestServiceNames _methodName,
             Method method,
             Dictionary<string, object> parameters,
             string authorizedToken,
             DataFormat dataFormat = DataFormat.Json
             )
         {
+            string methodName = ConfigurationManager.AppSettings[_methodName.ToString()];
             UpdateMethodNameWithParameters(ref methodName, parameters);
 
             RestRequest request = new RestRequest(methodName, method);
@@ -132,7 +134,7 @@ namespace Lesson25.RestSharp
             Token token = (Token)HttpContext.Current.Session["access_token"];
             if(token != null)
             {
-                var response = ExecuteImpl<Object>("api/version", Method.GET, null, $"{token.TokenType}{token.AccessToken}", DataFormat.None);
+                var response = ExecuteImpl<Object>(/*"api/version"*/RestServiceNames.GetVersion, Method.GET, null, $"{token.TokenType}{token.AccessToken}", DataFormat.None);
                 if(response.StatusCode != HttpStatusCode.OK)
                 {
                     token = null;
@@ -142,7 +144,7 @@ namespace Lesson25.RestSharp
             if (token == null)
             {
                 System.Web.HttpCookie phoneBookCookie = HttpContext.Current.Request.Cookies["PhoneBookCookie"];
-                var response = ExecuteImpl<Token>("api/token", Method.POST, 
+                var response = ExecuteImpl<Token>(/*"api/token"*/RestServiceNames.GetAccessToken, Method.POST, 
                     new Dictionary<string, object>()
                     {
                         {"application/json", $"grant_type=refresh_token&refresh_token={phoneBookCookie.Value}" }
@@ -154,7 +156,7 @@ namespace Lesson25.RestSharp
                 HttpContext.Current.Response.Cookies.Add(phoneBookCookie);
                 HttpContext.Current.Session["access_token"] = token;
             }
-            return $"{token.TokenType}{token.AccessToken}";
+            return $"{token.TokenType} {token.AccessToken}";
         }
     }
 }

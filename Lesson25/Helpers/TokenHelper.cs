@@ -10,16 +10,16 @@ namespace Lesson25.Helpers
 {
     public class TokenHelper
     {
-        public readonly RestSharpHelper restSharpHtlper;
+        public readonly RestSharpHelper restSharpHelper;
 
         public TokenHelper()
         {
-            restSharpHtlper = new RestSharpHelper();
+            restSharpHelper = new RestSharpHelper();
         }
 
         public Token GetRefreshToken(string login, string password)
         {
-            var response = restSharpHtlper.Execute<Token>("api/token", Method.POST,
+            var response = restSharpHelper.Execute<Token>(/*"api/token"*/RestServiceNames.GetAccessToken, Method.POST,
                 new Dictionary<string, object>()
                 {
                     {"application/json", $"grant_type=password&username={login}&password={password}" }
